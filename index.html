@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cotação de Moedas</title>
+  <style>
+    /* RESET BÁSICO */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: #f0f2f5;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    #container {
+      flex: 1;
+      width: 90%;
+      max-width: 1000px;
+      margin: 20px auto;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+
+    #head {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    #divSelect {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+    }
+
+    select {
+      padding: 10px 15px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    select:hover {
+      border-color: #007bff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      background: #fafafa;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #007bff;
+      color: white;
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
+    tr:hover {
+      background-color: #e0f0ff;
+    }
+
+    footer {
+  background: #007bff;
+  color: #fff;
+  padding: 20px;
+  border-radius: 0 0 10px 10px;
+  margin-top: auto;
+
+  /* NOVO */
+  max-height: 100%; /* limita a altura do footer */
+  overflow-y: auto; /* ativa rolagem vertical */
+  overflow-x: hidden; /* impede rolagem horizontal */
+  display: flex;
+  flex-direction: column-reverse;
+}
+    footer div {
+      margin-bottom: 10px;
+      padding: 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 5px;
+      margin-bottom: 1%;
+    }
+
+    footer ul {
+      margin-top: 5px;
+      list-style: inside disc;
+    }
+
+    @media (max-width: 600px) {
+      #divSelect {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      th, td {
+        font-size: 14px;
+        padding: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="head">
+      <h2 style="text-align:center; margin-bottom: 10px;">Consulta de Moedas</h2>
+      <div id="divSelect">
+        <select id="opcoesCampos">
+          <option value="" selected>--Selecione o campo--</option>
+          <option value="todos">Todos</option>
+        </select>
+        <select id="opcoes">
+          <option value="" >--Selecione a moeda--</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="corpo"></div>
+    <footer id="fot">
+      <h3>Histórico de Consultas</h3>
+    </footer>
+  </div>
+
+  <script>
+    const url = "https://economia.awesomeapi.com.br/json/all";
+    let url_mutavel = `https://economia.awesomeapi.com.br/json/`;
+    let opcoes = document.getElementById("opcoes");
+    let campos = document.getElementById("opcoesCampos");
+    let corpo = document.getElementById("corpo");
+    let fim = document.getElementById("fot");
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const nomes = await fetch(url);
+      let nomes2 = await nomes.json();
+
+      // Preenche campos
+      const primeiroObjeto = Object.values(nomes2)[0];
+      Object.keys(primeiroObjeto).forEach(campo => {
+        const option = document.createElement("option");
+        option.textContent = campo;
+        campos.appendChild(option);
+      });
+
+      // Preenche moedas
+      Object.keys(nomes2).forEach(moeda => {
+        const option = document.createElement("option");
+        option.textContent = moeda;
+        opcoes.appendChild(option);
+      });
+    });
+
+    opcoes.addEventListener("change", async () => {
+      const campoSelecionado = campos.value;
+      const moeda = opcoes.value;
+      if (!moeda) return;
+
+      const nova_url = url_mutavel + moeda;
+      let response = await fetch(nova_url);
+      let data = await response.json();
+      let infoMoeda = data[Object.keys(data)[0]];
+
+      let camposParaMostrar = campoSelecionado === "todos" ? Object.keys(infoMoeda) : [campoSelecionado];
+
+      // Cria tabela
+      const tabelaExistente = document.getElementById("tabela-moeda");
+      if (tabelaExistente) tabelaExistente.remove();
+
+      const tabela = document.createElement("table");
+      tabela.id = "tabela-moeda";
+
+      const thead = document.createElement("thead");
+      const trHead = document.createElement("tr");
+      camposParaMostrar.forEach(campo => {
+        const th = document.createElement("th");
+        th.textContent = campo;
+        trHead.appendChild(th);
+      });
+      thead.appendChild(trHead);
+      tabela.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      const trBody = document.createElement("tr");
+      camposParaMostrar.forEach(campo => {
+        const td = document.createElement("td");
+        td.textContent = infoMoeda[campo];
+        trBody.appendChild(td);
+      });
+      tbody.appendChild(trBody);
+      tabela.appendChild(tbody);
+
+      corpo.appendChild(tabela);
+
+      // Adiciona histórico no footer
+      const divHistorico = document.createElement("div");
+      const titulo = document.createElement("p");
+      titulo.innerHTML = `<b>Moeda:</b> ${moeda} | <b>Campos:</b> ${camposParaMostrar.join(", ")}`;
+      divHistorico.appendChild(titulo);
+
+      const ul = document.createElement("ul");
+      camposParaMostrar.forEach(campo => {
+        const li = document.createElement("li");
+        li.textContent = `${campo}: ${infoMoeda[campo]}`;
+        ul.appendChild(li);
+      });
+      divHistorico.appendChild(ul);
+
+      fim.appendChild(divHistorico);
+    });
+  </script>
+</body>
+</html>
